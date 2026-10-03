@@ -1,9 +1,13 @@
 import type { QueryClient } from '@tanstack/react-query'
 import {
   HeadContent,
+  Outlet,
   Scripts,
   createRootRouteWithContext,
 } from '@tanstack/react-router'
+
+import { Header } from '#/components/Header'
+import { getViewerFn } from '#/lib/auth.functions'
 
 import appCss from '../styles.css?url'
 
@@ -12,6 +16,10 @@ export interface RouterContext {
 }
 
 export const Route = createRootRouteWithContext<RouterContext>()({
+  // Runs on the server for the initial request (cookie -> viewer) and the result
+  // is serialized into the HTML, so the header is right on first paint. On client
+  // navigations it calls the server function again, which also catches expired sessions.
+  beforeLoad: async () => ({ viewer: await getViewerFn() }),
   head: () => ({
     meta: [
       { charSet: 'utf-8' },
@@ -21,7 +29,18 @@ export const Route = createRootRouteWithContext<RouterContext>()({
     links: [{ rel: 'stylesheet', href: appCss }],
   }),
   shellComponent: RootDocument,
+  component: RootLayout,
 })
+
+function RootLayout() {
+  const { viewer } = Route.useRouteContext()
+  return (
+    <>
+      <Header viewer={viewer} />
+      <Outlet />
+    </>
+  )
+}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   return (
@@ -30,7 +49,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        {/* The site header belongs here. See TASK.md. */}
         {children}
         <Scripts />
       </body>

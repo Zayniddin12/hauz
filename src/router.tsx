@@ -4,18 +4,20 @@ import { setupRouterSsrQueryIntegration } from '@tanstack/react-router-ssr-query
 
 import { routeTree } from './routeTree.gen'
 
-// Cache defaults for server data. Override per query where a route wants
-// something different.
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      staleTime: 60_000,
-      retry: 1,
-    },
-  },
-})
-
 export function getRouter() {
+  // Created per getRouter() call, NOT at module level: on the server a module-level
+  // client would be shared by every request and leak one user's cached data to another.
+  // Cache defaults for server data. Override per query where a route wants
+  // something different.
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        staleTime: 60_000,
+        retry: 1,
+      },
+    },
+  })
+
   const router = createTanStackRouter({
     routeTree,
     context: { queryClient },
